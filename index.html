@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Event Management System - Frontend</title>
+  <style>
+    :root{
+      --bg:#f4f7fb; --card:#fff; --accent:#2563eb; --muted:#6b7280;
+      --success:#10b981; --danger:#ef4444;
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:#111}
+    header{background:linear-gradient(90deg,#0ea5e9, #2563eb);color:white;padding:18px 24px;display:flex;align-items:center;justify-content:space-between}
+    .brand{font-weight:700;font-size:18px}
+    nav a{color:rgba(255,255,255,0.92);text-decoration:none;margin-left:14px;font-weight:600}
+    .container{max-width:1100px;margin:24px auto;padding:0 16px}
+
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
+    .card{background:var(--card);border-radius:12px;padding:16px;box-shadow:0 6px 20px rgba(16,24,40,0.06)}
+    .card h3{margin:0 0 12px 0}
+
+    .event{display:flex;gap:12px;padding:12px;border-radius:10px;border:1px solid #eef2ff;align-items:center}
+    .event img{width:88px;height:64px;object-fit:cover;border-radius:8px}
+    .event .meta{flex:1}
+    .event .meta h4{margin:0 0 6px 0;font-size:16px}
+    .event .meta p{margin:0;color:var(--muted);font-size:13px}
+
+    .btn{display:inline-block;padding:8px 12px;border-radius:8px;background:var(--accent);color:white;text-decoration:none;font-weight:600;border:none;cursor:pointer}
+    .btn.ghost{background:transparent;color:var(--accent);border:1px solid rgba(37,99,235,0.12)}
+    .btn.small{padding:6px 8px;font-size:13px}
+
+    form .row{display:flex;gap:10px}
+    label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+    input,textarea,select{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #e6edf8;background:#fcfdff}
+
+    .sidebar-section{margin-bottom:14px}
+    .vendors li{list-style:none;padding:8px 0;border-bottom:1px dashed #eef3ff}
+
+    /* responsive */
+    @media (max-width:900px){
+      .grid{grid-template-columns:1fr;}
+      header{flex-direction:column;align-items:flex-start;gap:10px}
+      nav{display:flex;flex-wrap:wrap}
+    }
+
+    /* modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.45);display:none;align-items:center;justify-content:center;padding:16px}
+    .modal{background:var(--card);width:100%;max-width:680px;border-radius:12px;padding:18px}
+    .modal.show{display:block}
+    .row-gap{display:flex;gap:8px}
+
+    footer{max-width:1100px;margin:18px auto;color:var(--muted);padding:0 16px}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">Eventry — Event Management</div>
+    <nav>
+      <a href="#events">Events</a>
+      <a href="#create" id="openCreate">Create Event</a>
+      <a href="#vendors">Vendors</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <div class="grid">
+      <section>
+        <div class="card" id="eventsCard">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h3>Upcoming Events</h3>
+            <div>
+              <button class="btn ghost" id="seedBtn">Load Demo</button>
+              <button class="btn" id="openCreate2">+ New Event</button>
+            </div>
+          </div>
+
+          <div id="eventsList">
+            <!-- events inserted here -->
+            <p style="color:var(--muted)">No events yet. Create or load demo events.</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <h3>Bookings</h3>
+          <div id="bookingsList"><p style="color:var(--muted)">No bookings made.</p></div>
+        </div>
+      </section>
+
+      <aside>
+        <div class="card sidebar-section">
+          <h3>Search Events</h3>
+          <input id="search" placeholder="Search by name or place" />
+        </div>
+
+        <div class="card sidebar-section">
+          <h3>Vendors</h3>
+          <ul class="vendors" id="vendorsList">
+            <!-- vendors -->
+          </ul>
+          <div style="margin-top:10px;text-align:right">
+            <button class="btn small" id="openVendor">+ Add Vendor</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Quick Stats</h3>
+          <p id="statEvents">Events: 0</p>
+          <p id="statBookings">Bookings: 0</p>
+        </div>
+      </aside>
+    </div>
+  </main>
+
+  <footer>
+    Simple front-end demo — stores data locally in your browser (localStorage).
+  </footer>
+
+  <!-- modal: create event -->
+  <div class="modal-backdrop" id="modalBackdrop">
+    <div class="modal" role="dialog" aria-modal="true">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h3 id="modalTitle">Create Event</h3>
+        <button class="btn ghost" id="closeModal">Close</button>
+      </div>
+
+      <form id="eventForm">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label>Event Name</label>
+            <input id="ev_name" required />
+          </div>
+          <div>
+            <label>Date</label>
+            <input id="ev_date" type="date" required />
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+          <div>
+            <label>Venue</label>
+            <input id="ev_venue" />
+          </div>
+          <div>
+            <label>Price (per ticket)</label>
+            <input id="ev_price" type="number" min="0" value="0" />
+          </div>
+        </div>
+
+        <div style="margin-top:10px">
+          <label>Description</label>
+          <textarea id="ev_desc" rows="3"></textarea>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;margin-top:12px;gap:8px">
+          <button type="button" class="btn ghost" id="modalCancel">Cancel</button>
+          <button class="btn" type="submit">Save Event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- modal: vendor -->
+  <div class="modal-backdrop" id="vendorBackdrop">
+    <div class="modal">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h3>Add Vendor</h3>
+        <button class="btn ghost" id="closeVendor">Close</button>
+      </div>
+      <form id="vendorForm">
+        <label>Vendor Name</label>
+        <input id="vendor_name" required />
+        <label style="margin-top:8px">Service Type</label>
+        <input id="vendor_type" />
+        <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:8px">
+          <button type="button" class="btn ghost" id="vendorCancel">Cancel</button>
+          <button class="btn" type="submit">Add Vendor</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- booking modal -->
+  <div class="modal-backdrop" id="bookBackdrop">
+    <div class="modal">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h3>Book Tickets</h3>
+        <button class="btn ghost" id="closeBook">Close</button>
+      </div>
+      <form id="bookForm">
+        <input id="book_event_id" type="hidden" />
+        <label>Your Name</label>
+        <input id="book_name" required />
+        <label style="margin-top:8px">Number of Tickets</label>
+        <input id="book_tickets" type="number" min="1" value="1" />
+        <div style="display:flex;justify-content:flex-end;margin-top:10px;gap:8px">
+          <button type="button" class="btn ghost" id="bookCancel">Cancel</button>
+          <button class="btn" type="submit">Confirm Booking</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Simple front-end logic using localStorage for demo purposes
+    const LS_EVENTS = 'ems_events_v1';
+    const LS_VENDORS = 'ems_vendors_v1';
+    const LS_BOOKS = 'ems_books_v1';
+
+    // helpers
+    const $ = (sel)=>document.querySelector(sel);
+    const $all = (sel)=>Array.from(document.querySelectorAll(sel));
+
+    // state
+    let events = JSON.parse(localStorage.getItem(LS_EVENTS) || '[]');
+    let vendors = JSON.parse(localStorage.getItem(LS_VENDORS) || '[]');
+    let bookings = JSON.parse(localStorage.getItem(LS_BOOKS) || '[]');
+
+    // UI elements
+    const eventsList = $('#eventsList');
+    const vendorsList = $('#vendorsList');
+    const bookingsList = $('#bookingsList');
+    const statEvents = $('#statEvents');
+    const statBookings = $('#statBookings');
+
+    function saveAll(){
+      localStorage.setItem(LS_EVENTS, JSON.stringify(events));
+      localStorage.setItem(LS_VENDORS, JSON.stringify(vendors));
+      localStorage.setItem(LS_BOOKS, JSON.stringify(bookings));
+      renderAll();
+    }
+
+    function renderAll(){
+      renderEvents();
+      renderVendors();
+      renderBookings();
+      statEvents.textContent = `Events: ${events.length}`;
+      statBookings.textContent = `Bookings: ${bookings.length}`;
+    }
+
+    function renderEvents(filter=''){
+      if(events.length===0){
+        eventsList.innerHTML = '<p style="color:var(--muted)">No events yet. Create or load demo events.</p>';
+        return;
+      }
+      const out = events
+        .filter(e=> e.name.toLowerCase().includes(filter) || (e.venue||'').toLowerCase().includes(filter))
+        .map(e=>{
+          return `
+            <div class="event" data-id="${e.id}">
+              <img src="${e.image||'https://picsum.photos/seed/'+encodeURIComponent(e.id)+'/300/200'}" alt="ev">
+              <div class="meta">
+                <h4>${e.name} <small style="color:var(--muted);font-weight:600"> — ${e.date}</small></h4>
+                <p>${(e.venue||'')} • ₹${e.price} • ${e.desc? e.desc.slice(0,80):''}</p>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <button class="btn small" onclick="openBook('${e.id}')">Book</button>
+                <button class="btn small ghost" onclick="deleteEvent('${e.id}')">Delete</button>
+              </div>
+            </div>
+          `
+        }).join('');
+      eventsList.innerHTML = out;
+    }
+
+    function renderVendors(){
+      if(vendors.length===0){
+        vendorsList.innerHTML = '<li style="color:var(--muted)">No vendors added.</li>';
+        return;
+      }
+      vendorsList.innerHTML = vendors.map(v=>`<li><strong>${v.name}</strong> — <span style="color:var(--muted)">${v.type||'Service'}</span></li>`).join('');
+    }
+
+    function renderBookings(){
+      if(bookings.length===0){
+        bookingsList.innerHTML = '<p style="color:var(--muted)">No bookings made.</p>'
+        return;
+      }
+      bookingsList.innerHTML = bookings.map(b=>{
+        const ev = events.find(e=>e.id===b.eventId) || {name:'(deleted)'};
+        return `<div style="padding:8px;border-radius:8px;border:1px solid #f0f7ff;margin-bottom:8px">
+          <strong>${b.name}</strong> booked <strong>${b.tickets}</strong> ticket(s) for <em>${ev.name}</em>
+        </div>`
+      }).join('');
+    }
+
+    // actions
+    function openModal(){ $('#modalBackdrop').style.display='flex'; }
+    function closeModal(){ $('#modalBackdrop').style.display='none'; $('#eventForm').reset(); }
+    function openVendorModal(){ $('#vendorBackdrop').style.display='flex'; }
+    function closeVendorModal(){ $('#vendorBackdrop').style.display='none'; $('#vendorForm').reset(); }
+    function openBookModal(){ $('#bookBackdrop').style.display='flex'; }
+    function closeBookModal(){ $('#bookBackdrop').style.display='none'; $('#bookForm').reset(); }
+
+    $('#openCreate').addEventListener('click', (e)=>{ e.preventDefault(); openModal(); });
+    $('#openCreate2').addEventListener('click', openModal);
+    $('#closeModal').addEventListener('click', closeModal);
+    $('#modalCancel').addEventListener('click', closeModal);
+
+    $('#openVendor').addEventListener('click', openVendorModal);
+    $('#closeVendor').addEventListener('click', closeVendorModal);
+    $('#vendorCancel').addEventListener('click', closeVendorModal);
+
+    $('#closeBook').addEventListener('click', closeBookModal);
+    $('#bookCancel').addEventListener('click', closeBookModal);
+
+    $('#eventForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      const newEv = {
+        id: 'ev_'+Date.now(),
+        name: $('#ev_name').value.trim(),
+        date: $('#ev_date').value,
+        venue: $('#ev_venue').value.trim(),
+        price: Number($('#ev_price').value||0),
+        desc: $('#ev_desc').value.trim(),
+        image: ''
+      };
+      events.push(newEv);
+      saveAll();
+      closeModal();
+    });
+
+    $('#vendorForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      vendors.push({id:'vd_'+Date.now(),name:$('#vendor_name').value.trim(), type:$('#vendor_type').value.trim()});
+      saveAll();
+      closeVendorModal();
+    });
+
+    window.openBook = function(eventId){
+      $('#book_event_id').value = eventId;
+      openBookModal();
+    }
+
+    $('#bookForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      const b = {id:'bk_'+Date.now(), eventId:$('#book_event_id').value, name:$('#book_name').value.trim(), tickets: Number($('#book_tickets').value||1)};
+      bookings.push(b);
+      saveAll();
+      closeBookModal();
+      alert('Booking successful!');
+    });
+
+    window.deleteEvent = function(id){
+      if(!confirm('Delete this event?')) return;
+      events = events.filter(e=>e.id!==id);
+      // also remove bookings for that event
+      bookings = bookings.filter(b=>b.eventId!==id);
+      saveAll();
+    }
+
+    // search
+    $('#search').addEventListener('input', (e)=>{
+      renderEvents(e.target.value.trim().toLowerCase());
+    });
+
+    // seed demo
+    $('#seedBtn').addEventListener('click', ()=>{
+      if(events.length>0 && !confirm('Overwrite existing demo data?')) return;
+      events = [
+        {id:'ev1',name:'Tech Conference 2025',date:'2025-11-10',venue:'Hyatt Convention',price:500,desc:'A one-day tech conference covering AI and web technologies.'},
+        {id:'ev2',name:'Wedding Expo',date:'2025-12-05',venue:'City Banquet Hall',price:0,desc:'Showcasing wedding services and vendors.'},
+        {id:'ev3',name:'Music Fest',date:'2025-10-02',venue:'Open Grounds',price:1200,desc:'Live bands, food stalls and family zone.'}
+      ];
+      vendors = [
+        {id:'v1',name:'Spark Catering',type:'Catering'},
+        {id:'v2',name:'Light & Sound Co',type:'AV'},
+        {id:'v3',name:'Decor Masters',type:'Decoration'}
+      ];
+      bookings = [];
+      saveAll();
+    });
+
+    // quick init
+    renderAll();
+
+    // close modal on backdrop click
+    document.querySelectorAll('.modal-backdrop').forEach(b=>{
+      b.addEventListener('click', (ev)=>{
+        if(ev.target===b){ b.style.display='none'; }
+      });
+    });
+
+    // expose save function for dev console
+    window._ems = {events,vendors,bookings,saveAll};
+  </script>
+</body>
+</html>
